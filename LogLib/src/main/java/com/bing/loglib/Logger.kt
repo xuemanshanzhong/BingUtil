@@ -91,42 +91,55 @@ object Logger {
         if (msg == null)
             return
 
+        var message = msg
         if (decorEnabled) { logTopOrBottomBorder(tag, type) }
 
         if (threadInfoEnabled) {
-            log(tag, "Thread: ${Thread.currentThread().name}", type)
-            if (decorEnabled) { logMiddleBorder(tag, type) }
+            val threadMsg = "Thread: ${Thread.currentThread().name}"
+            if (decorEnabled) {
+                log(tag, threadMsg, type)
+                logMiddleBorder(tag, type)
+            } else {
+                message += threadMsg
+            }
         }
 
+        var traceMessage = ""
         if (traceCodeEnabled && occurred != null) {
             occurred.stackTrace.getOrNull(printStackLayer)?.run {
-                val message = "$className.$methodName   ($fileName:$lineNumber)"
-                log(tag, message, type)
+                traceMessage = "$className.$methodName ($fileName:$lineNumber)"
+
+//                log(tag, traceMessage, type)
             }
 
             // 下面两行也可以实现，到时候看哪个好
 //            val realStack: Array<StackTraceElement> = occurred.stackTrace.copyOfRange(0, printStackLayer)
 //            realStack.forEach { log(tag, it.toString(), type) }
 
-            if (decorEnabled) { logMiddleBorder(tag, type) }
+            if (decorEnabled) {
+                logMiddleBorder(tag, type)
+                log(tag, traceMessage, type)
+            } else {
+                message = "$message ---- $traceMessage"
+            }
         }
 
         // 判断log内容的长度，过长则分条打印
-        val length = msg.length
+        val length = message.length
         if (length > MAX_LENGTH) {
             synchronized(this) {
                 var startIndex = 0
                 var endIndex = MAX_LENGTH
                 while (startIndex < length) {
                     endIndex = min(length, endIndex)
-                    val substring = msg.substring(startIndex, endIndex)
+                    val substring = message.substring(startIndex, endIndex)
                     log(tag, substring, type)
                     startIndex += MAX_LENGTH
                     endIndex += MAX_LENGTH
                 }
             }
         } else {
-            log(tag, msg, type)
+            log(tag, message, type)
         }
 
         if (decorEnabled) { logTopOrBottomBorder(tag, type) }
