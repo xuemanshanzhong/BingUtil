@@ -4,12 +4,10 @@ import android.util.Log
 import com.google.gson.GsonBuilder
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.cio.CIO
-import io.ktor.client.engine.okhttp.OkHttp
 import io.ktor.client.plugins.HttpTimeout
 import io.ktor.client.plugins.logging.LogLevel
 import io.ktor.client.plugins.logging.Logger
 import io.ktor.client.plugins.logging.Logging
-import io.ktor.client.plugins.logging.SIMPLE
 import io.ktor.client.plugins.sse.SSE
 import io.ktor.client.plugins.sse.sse
 import io.ktor.client.request.get
@@ -106,6 +104,7 @@ object HttpRequest {
                         append(t, u)
                     }
                 }
+                contentType?.let { contentType(ContentType.parse(it)) }
                 setBody(requestBody)
             }.bodyAsText()
             Log.d(TAG, "doPostRequest Success: $responseBody")
@@ -135,20 +134,21 @@ object HttpRequest {
         url: String,
         header: Map<String, String> = emptyMap(),
         requestBody: Any?,
+        contentType: String? = null,
         crossinline onResponse: (RequestStatus, String?) -> Unit = { status, line -> }
     ) {
         runCatching {
             ktorClient.sse(
                 request =  {
                     url(url)
-                    method = HttpMethod.Post // 指定为 POST 方法
+                    method = HttpMethod.Post
                     headers {
                         header.forEach { (t, u) ->
                             append(t, u)
                         }
                     }
-                    contentType(ContentType.Application.Json) // 设置请求体格式
-                    setBody(requestBody) // 设置请求体
+                    contentType?.let { contentType(ContentType.parse(it)) }
+                    setBody(requestBody)
                 }
             ) {
                 incoming.collect { event ->
@@ -156,7 +156,7 @@ object HttpRequest {
                     Log.i(TAG, "Event from server, attribute: data-${event.data} event-${event.event} id-${event.id} retry-${event.retry} comments-${event.comments}")
                 }
                 onResponse(FINISH, "")
-                Log.e(TAG, "-> SSE Post Request End")
+                Log.i(TAG, "-> SSE Post Request End")
             }
         }.onFailure {
             onResponse(ERROR, it.message.toString())
