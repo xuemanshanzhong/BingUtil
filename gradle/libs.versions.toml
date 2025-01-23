@@ -9,6 +9,9 @@ appcompat = "1.7.0"
 material = "1.12.0"
 activity = "1.9.3"
 constraintlayout = "2.2.0"
+gsonVersion = "2.10.1"
+ktorVersion = "3.0.3"
+ktorClientLoggingVersion = "2.0.0"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -19,9 +22,26 @@ androidx-appcompat = { group = "androidx.appcompat", name = "appcompat", version
 material = { group = "com.google.android.material", name = "material", version.ref = "material" }
 androidx-activity = { group = "androidx.activity", name = "activity", version.ref = "activity" }
 androidx-constraintlayout = { group = "androidx.constraintlayout", name = "constraintlayout", version.ref = "constraintlayout" }
+gson = { module = "com.google.code.gson:gson", version.ref = "gsonVersion" }
+
+# ktor - 用Kotlin 编写的异步 Web 应用程序框架
+ktor-server-core = { group = "io.ktor", name = "ktor-server-core", version.ref = "ktorVersion" }
+ktor-server-netty = { group = "io.ktor", name = "ktor-server-netty", version.ref = "ktorVersion" }
+ktor-server-cio = { group = "io.ktor", name = "ktor-server-cio", version.ref = "ktorVersion" }
+ktor-server-websockets = { group = "io.ktor", name = "ktor-server-websockets", version.ref = "ktorVersion" }
+
+ktor-client-websockets = { group = "io.ktor", name = "ktor-client-websockets", version.ref = "ktorVersion" }
+ktor-client-okhttp = { group = "io.ktor", name = "ktor-client-okhttp", version.ref = "ktorVersion" }
+ktor-client-core = { group = "io.ktor", name = "ktor-client-core", version.ref = "ktorVersion" }
+ktor-client-cio = { group = "io.ktor", name = "ktor-client-cio", version.ref = "ktorVersion" }
+ktor-client-content-negotiation = { group = "io.ktor", name = "ktor-client-content-negotiation", version.ref = "ktorVersion" }
+ktor-client-logging = { module = "io.ktor:ktor-client-logging", version.ref = "ktorClientLoggingVersion" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
 kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
 android-library = { id = "com.android.library", version.ref = "agp" }
+
+[bundles]
+ktor = ["ktor-server-core", "ktor-server-netty", "ktor-server-cio", "ktor-server-websockets", "ktor-client-websockets", "ktor-client-okhttp", "ktor-client-core", "ktor-client-cio", "ktor-client-content-negotiation", "ktor-client-logging"]
 
