@@ -16,10 +16,9 @@ object Logger {
     private const val SINGLE_DIVIDER = "┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄"
     private const val MAX_LENGTH: Int = 3800
 
-    // 主tag
-    private var mainTag = "Logger"
-    // 副tag，可为空
-    private var secondTag = ""
+    private var mainTag: String? = null
+    private var baseClassPath = "com."
+
 
     // 是否显示在代码中的位置
     var traceCodeEnabled = false
@@ -30,48 +29,47 @@ object Logger {
     // 是否显示当前Thread信息
     var threadInfoEnabled = false
 
-    fun init(firstTag: String) {
-        this.mainTag = firstTag
+    fun initTag(tag: String) {
+        this.mainTag = tag
     }
 
-    fun init(firstTag: String, secondTag: String) {
-        this.mainTag = firstTag
-        this.secondTag = secondTag
+    fun initBaseClassPath(classPath: String) {
+        this.baseClassPath = classPath
     }
 
     @JvmOverloads   // 用于兼容kotlin函数的默认参数机制
     @JvmStatic  //如果不加 @JvmStatic，Java 调用时需要通过 Companion 访问
-    fun v(msg: Any?, tag: String = this.mainTag+this.secondTag, occurred: Throwable? = Exception()) {
+    fun v(msg: Any?, tag: String = mainTag?: getCallerInfo(), occurred: Throwable? = Exception()) {
         print(msg.toString(), tag, Type.VERBOSE, occurred)
     }
 
     @JvmOverloads
     @JvmStatic
-    fun d(msg: Any?, tag: String = this.mainTag+this.secondTag, occurred: Throwable? = Exception()) {
+    fun d(msg: Any?, tag: String = mainTag?: getCallerInfo(), occurred: Throwable? = Exception()) {
         print(msg.toString(), tag, Type.DEBUG, occurred)
     }
 
     @JvmOverloads
     @JvmStatic
-    fun i(msg: Any?, tag: String = this.mainTag+this.secondTag, occurred: Throwable? = Exception()) {
+    fun i(msg: Any?, tag: String = mainTag?: getCallerInfo(), occurred: Throwable? = Exception()) {
         print(msg.toString(), tag, Type.INFO, occurred)
     }
 
     @JvmOverloads
     @JvmStatic
-    fun w(msg: Any?, tag: String = this.mainTag+this.secondTag, occurred: Throwable? = Exception()) {
+    fun w(msg: Any?, tag: String = mainTag?: getCallerInfo(), occurred: Throwable? = Exception()) {
         print(msg.toString(), tag, Type.WARN, occurred)
     }
 
     @JvmOverloads
     @JvmStatic
-    fun e(msg: Any?, tag: String = this.mainTag+this.secondTag, occurred: Throwable? = Exception()) {
+    fun e(msg: Any?, tag: String = mainTag?: getCallerInfo(), occurred: Throwable? = Exception()) {
         print(msg.toString(), tag, Type.ERROR, occurred)
     }
 
     @JvmOverloads
     @JvmStatic
-    fun json(jsonMsg: String?, tag: String = this.mainTag+this.secondTag, type:Type = Type.DEBUG, occurred: Throwable? = Exception()) {
+    fun json(jsonMsg: String?, tag: String = mainTag?: getCallerInfo(), type:Type = Type.DEBUG, occurred: Throwable? = Exception()) {
         if (jsonMsg == null)    return
         val obj = JSONTokener(jsonMsg).nextValue()
         val message = when(obj) {
@@ -84,10 +82,31 @@ object Logger {
     }
 
     /**
+     * todo 待优化
+     * 根据堆栈信息自动获取当前className
+     * https://blog.csdn.net/qq_39620460/article/details/109740153
+     */
+    private fun getCallerInfo(): String {
+        val stackTrace = Thread.currentThread().stackTrace
+        //0 VMStack.getThreadStackTrace
+        //1 Thread.getStackTrace
+        //2 LogUtil.getCallerInfo
+        //3 LogUtil.e
+        //4 Caller
+        val caller = stackTrace[4]
+        Log.e("TAGGGG", "getCallerInfo: $caller", )
+        return simplifyClassName(caller.className)
+    }
+
+    private fun simplifyClassName(className: String): String{
+        return className.substringAfter(baseClassPath).substringBefore("$")
+    }
+
+    /**
      * 日志打印具体实现
      *
      */
-    private fun print(msg: String? = null, tag: String = this.mainTag+this.secondTag, type: Type = Type.INFO, occurred: Throwable? = Exception(), printStackLayer:Int = 1) {
+    private fun print(msg: String? = null, tag: String, type: Type = Type.INFO, occurred: Throwable? = Exception(), printStackLayer:Int = 1) {
         if (msg == null)
             return
 
