@@ -1,4 +1,4 @@
-package com.senseauto.ktornetlib.client
+package com.bing.ktornetlib.client
 
 import android.util.Log
 import io.ktor.client.HttpClient

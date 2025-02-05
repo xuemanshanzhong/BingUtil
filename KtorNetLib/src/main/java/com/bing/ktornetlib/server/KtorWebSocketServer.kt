@@ -1,4 +1,4 @@
-package com.senseauto.ktornetlib.server
+package com.bing.ktornetlib.server
 
 import android.os.Build
 import android.util.Log

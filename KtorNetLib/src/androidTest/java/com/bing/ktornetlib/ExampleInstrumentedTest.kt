@@ -1,4 +1,4 @@
-package com.senseauto.ktornetlib
+package com.bing.ktornetlib
 
 import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.ext.junit.runners.AndroidJUnit4

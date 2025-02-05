@@ -1,4 +1,4 @@
-package com.senseauto.ktornetlib
+package com.bing.mmkvlib
 
 import org.junit.Test
 

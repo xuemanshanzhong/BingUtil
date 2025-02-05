@@ -23,3 +23,4 @@ rootProject.name = "DemoApp"
 include(":app")
 include(":LogLib")
 include(":KtorNetLib")
+include(":MMKVLib")
