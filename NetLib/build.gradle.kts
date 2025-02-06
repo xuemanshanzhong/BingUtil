@@ -42,5 +42,6 @@ dependencies {
     androidTestImplementation(libs.androidx.espresso.core)
 
     implementation(libs.bundles.ktor)
+    implementation(libs.bundles.okhttp)
     implementation(libs.gson)
 }

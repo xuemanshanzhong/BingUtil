@@ -1,4 +1,4 @@
-package com.bing.ktornetlib.client
+package com.bing.netlib.client
 
 import android.util.Log
 import io.ktor.client.HttpClient

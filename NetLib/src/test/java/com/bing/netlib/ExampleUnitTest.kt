@@ -1,4 +1,4 @@
-package com.bing.ktornetlib
+package com.bing.netlib
 
 import org.junit.Test
 
