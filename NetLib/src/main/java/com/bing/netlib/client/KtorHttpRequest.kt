@@ -10,15 +10,26 @@ import io.ktor.client.plugins.logging.Logger
 import io.ktor.client.plugins.logging.Logging
 import io.ktor.client.plugins.sse.SSE
 import io.ktor.client.plugins.sse.sse
+import io.ktor.client.request.forms.MultiPartFormDataContent
+import io.ktor.client.request.forms.formData
 import io.ktor.client.request.get
 import io.ktor.client.request.headers
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
 import io.ktor.client.request.url
 import io.ktor.client.statement.bodyAsText
+import io.ktor.client.statement.content
 import io.ktor.http.ContentType
+import io.ktor.http.Headers
+import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpMethod
 import io.ktor.http.contentType
+import io.ktor.utils.io.InternalAPI
+import io.ktor.utils.io.readUTF8Line
+import kotlinx.coroutines.delay
+import java.io.EOFException
+import java.io.File
+import kotlin.coroutines.cancellation.CancellationException
 
 object HttpRequest {
     const val TAG = "HttpRequest"
@@ -160,6 +171,124 @@ object HttpRequest {
             }
         }.onFailure {
             onResponse(ERROR, it.message.toString())
+        }
+    }
+
+    /**
+     * SSE multipart/form-data 类型POST请求
+     * @param url 请求地址
+     * @param header 请求头
+     * @param textBody 文本请求体
+     * @param imageFilePath 图片路径
+     * @param contentType Content-Type
+     * @param onResponse 响应
+     */
+    suspend inline fun doPostSSEMultiformRequest(
+        url: String,
+        header: Map<String, String> = emptyMap(),
+        textBody: String,
+        imageFilePath: String,
+        contentType: String? = null,
+        crossinline onResponse: (RequestStatus, String?) -> Unit = { status, line -> }
+    ) {
+        runCatching {
+            val imgFile = File(imageFilePath)
+            ktorClient.sse(
+                request =  {
+                    url(url)
+                    method = HttpMethod.Post
+                    headers {
+                        header.forEach { (t, u) ->
+                            append(t, u)
+                        }
+                    }
+                    contentType?.let { contentType(ContentType.parse(it)) }
+                    setBody(
+                        MultiPartFormDataContent(
+                        formData {
+                            append("data", textBody, Headers.build {
+                                append(HttpHeaders.ContentType, "application/json")
+                            })
+                            append("image", imgFile.readBytes(), Headers.build {
+                                append(HttpHeaders.ContentType, "image/jpeg")
+                                append(HttpHeaders.ContentDisposition, "form-data; name=\"image\"; filename=${imgFile.name}")
+                            })
+                        },
+//                        boundary = "WebAppBoundary"
+                    )
+                    )
+                }
+            ) {
+                incoming.collect { event ->
+                    if (event.data == "[DONE]"){
+                        return@collect
+                    }
+                    onResponse(SUCCESS, event.data)
+                    Log.i(TAG, "Event from server, attribute: data-${event.data} event-${event.event} id-${event.id} retry-${event.retry} comments-${event.comments}")
+                }
+                onResponse(FINISH, "")
+                Log.e(TAG, "-> SSE Post Request End")
+            }
+        }.onFailure {
+            onResponse(ERROR, it.message.toString())
+        }
+    }
+
+
+    // todo 此形式的流失请求和sse请求的功能异同点待比较
+    /**
+     * 流式POST请求
+     * @param url 请求地址
+     * @param header 请求头
+     * @param requestBody 请求体
+     * @param contentType Content-Type
+     * @param onResponse 响应
+     */
+    @OptIn(InternalAPI::class)
+    suspend inline fun doPostStreamRequest(
+        url: String,
+        header: Map<String, String> = emptyMap(),
+        requestBody: Any?,
+        contentType: String? = null,
+        crossinline onResponse: (RequestStatus, String) -> Unit = { status, line -> }
+    ) {
+        Log.d(TAG, "doPostStreamRequest start requestBody: $requestBody")
+        runCatching {
+            ktorClient.post(url) {
+                headers {
+                    append(HttpHeaders.ContentType, ContentType.Application.Json.toString())
+                    header.forEach {
+                        append(it.key, it.value)
+                    }
+                }
+                contentType?.let { contentType(ContentType.parse(it)) }
+                // 配置请求体
+                setBody(requestBody)
+            }.content.apply {
+//                // 禁用缓冲，确保实时性
+//                (this as? ByteReadChannel)?.apply {
+//                    // 设置缓冲区大小为 1，减少缓冲
+//                    this.discard(0)
+//                }
+                while (!isClosedForRead) {
+                    val buffer = readUTF8Line()
+                    if (buffer?.isNotEmpty() == true) {
+                        Log.e(TAG, "doPostStreamRequest partial result: $buffer")
+                        delay(30)
+                        onResponse(SUCCESS, buffer)
+                    }
+                }
+                onResponse(FINISH, "")
+            }
+        }.onFailure {
+            if (it is CancellationException) {
+                // 协程取消导致的错误不做处理
+            } else if (it.cause is EOFException) {
+                onResponse.invoke(ERROR, it.message.toString())
+            } else {
+                onResponse.invoke(ERROR, it.message.toString())
+            }
+            Log.d(TAG, "doPostStreamRequest Error: message is: ${it.message}, cause is ${it.cause}, it is $it")
         }
     }
 }
